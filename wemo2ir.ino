@@ -65,6 +65,11 @@ void setup()
 		save();
 		www.send(200, "text/plain", "done");
 	});
+	www.on("/debug", [](){
+		EEPROM.begin(512);
+		EEPROM.write(0,40);
+		EEPROM.end();
+	});
 	www.begin();
 
 	Serial.println("Startup complete");
@@ -119,7 +124,14 @@ void save() {
 		Serial.println("received");
 		EEPROM.begin(512);
 		Serial.println("EEPROM initialized.");
-		EEPROM.write(0, 38); //kHz
+		switch (results->decode_type) {
+			case SONY: EEPROM.write(0,40); //kHz
+			case RC5: case RC6: EEPROM.write(0,36);
+			case DISH: EEPROM.write(0,56);
+			case PANASONIC: EEPROM.write(0,35);
+			default: EEPROM.write(0, 38);
+		}
+		Serial.print("kHz written: "); Serial.println(EEPROM.read(0));
 		EEPROM.write(1, results->rawlen - 1); //how long is it
 		Serial.print("Writing actual code: ");
 		for (int i = 1;  i < results->rawlen;  i++) {
