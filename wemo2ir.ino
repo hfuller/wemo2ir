@@ -167,6 +167,7 @@ void save() {
 		Serial.println("done.");
 		EEPROM.end();
 	}	
+	irrecv.resume();
 }
 
 void parseString() {
