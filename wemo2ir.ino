@@ -15,6 +15,7 @@
 // prototypes
 void toggle();
 void save();
+void parseString();
 
 WemoManager wemoManager;
 WemoSwitch *light = NULL;
@@ -70,6 +71,7 @@ void setup()
 		EEPROM.write(0,40);
 		EEPROM.end();
 	});
+	www.on("/savegc", parseString);
 	www.begin();
 
 	Serial.println("Startup complete");
@@ -106,13 +108,23 @@ void toggle() {
 		}
 		Serial.print("done... "); Serial.print(length); Serial.println(" values.");
 
-		//unsigned int  rawData[67] = {4550,4400, 650,1600, 650,1600, 650,1650, 650,500, 650,500, 650,500, 650,500, 650,500, 650,1600, 650,1600, 650,1650, 650,500, 650,500, 650,500, 650,500, 650,500, 650,500, 650,1650, 650,500, 650,500, 650,500, 650,500, 650,500, 650,500, 650,1650, 650,500, 650,1600, 650,1600, 650,1600, 650,1600, 650,1600, 650,1600, 650};  // SAMSUNG E0E040BF
-		//Serial.print("sizeof: "); Serial.println(sizeof(rawData)/sizeof(rawData[0]));
-		//irsend.sendRaw(rawData, (sizeof(rawData)/sizeof(rawData[0])), 38);
+		if ( khz == 0 ) {
+			Serial.println("It's a GC code!!");
+			Serial.print("Going to send "); Serial.print(rawData2[0]); Serial.print("Hz code of length "); Serial.println(length);
+			irsend.sendGC(rawData2, length);
+			Serial.println("done");
+			
+		} else {
+			//unsigned int  rawData[67] = {4550,4400, 650,1600, 650,1600, 650,1650, 650,500, 650,500, 650,500, 650,500, 650,500, 650,1600, 650,1600, 650,1650, 650,500, 650,500, 650,500, 650,500, 650,500, 650,500, 650,1650, 650,500, 650,500, 650,500, 650,500, 650,500, 650,500, 650,1650, 650,500, 650,1600, 650,1600, 650,1600, 650,1600, 650,1600, 650,1600, 650};  // SAMSUNG E0E040BF
+			//Serial.print("sizeof: "); Serial.println(sizeof(rawData)/sizeof(rawData[0]));
+			//irsend.sendRaw(rawData, (sizeof(rawData)/sizeof(rawData[0])), 38);
 
-		Serial.print("Going to send "); Serial.print(khz); Serial.print("kHz code, of length "); Serial.println(length);
-		irsend.sendRaw(rawData2, length, khz);
-		Serial.println("done");
+			Serial.println("It's a raw code");
+			Serial.print("Going to send "); Serial.print(khz); Serial.print("kHz code, of length "); Serial.println(length);
+			irsend.sendRaw(rawData2, length, khz);
+			Serial.println("done");
+		
+		}
 
 		EEPROM.end();
 }
@@ -145,4 +157,49 @@ void save() {
 		Serial.println("done.");
 		EEPROM.end();
 	}	
+}
+
+void parseString() {
+	unsigned int *codeArray;
+	String str = www.arg("code");
+	int nextIndex;
+	int codeLength = 1;
+	int currentIndex = 0;
+	nextIndex = str.indexOf(',');
+
+	// change to do/until and remove superfluous repetition below...
+	Serial.println("reading GC code from the interbutt: ");
+	while (nextIndex != -1) {
+		if (codeLength > 1) {
+			codeArray = (unsigned int*) realloc(codeArray, codeLength * sizeof(unsigned int));
+		} else {
+			codeArray = (unsigned int*) malloc(codeLength * sizeof(unsigned int));
+		}
+
+		codeArray[codeLength-1] = (unsigned int) (str.substring(currentIndex, nextIndex).toInt());
+		Serial.print(codeArray[codeLength-1]); Serial.print(", ");
+	
+		codeLength++;
+		currentIndex = nextIndex + 1;
+		nextIndex = str.indexOf(',', currentIndex);			 
+	}
+	codeArray = (unsigned int*) realloc(codeArray, codeLength * sizeof(unsigned int));
+	codeArray[codeLength-1] = (unsigned int) (str.substring(currentIndex, nextIndex).toInt());
+	Serial.print(codeArray[codeLength-1]);
+	Serial.print("... done. size read: "); Serial.println(codeLength);
+	EEPROM.begin(512);
+	EEPROM.write(0,0); Serial.println("Wrote gc indicator");
+	EEPROM.write(1,codeLength); Serial.println("wrote code length");
+	Serial.print("Writing code to eeprom: ");
+	for ( int i = 0; i < codeLength; i++ ) {
+		int loc = (i+1)*2;
+		unsigned int value = codeArray[i];
+		Serial.print(loc); Serial.print("="); Serial.print(value);
+		EEPROM.write(loc,   (value>>8) & 0xFF);
+		EEPROM.write(loc+1, value & 0xFF);
+		Serial.print(", ");
+	}
+	Serial.println("done.");
+	EEPROM.end();
+
 }
