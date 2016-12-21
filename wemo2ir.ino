@@ -84,10 +84,7 @@ void setup()
 
 void loop()
 {
-	Serial.print(WiFi.localIP());
-	Serial.print(" - server loop... ");
 	wemoManager.serverLoop();
-	Serial.print(" - www.handleClient... ");
 	www.handleClient();
 
 	if ( WiFi.status() != WL_CONNECTED ) {
@@ -95,9 +92,6 @@ void loop()
 		delay(3000);
 		ESP.restart();
 	}
-	
-	Serial.println("connected and ready for another loop.");
-	delay(250);
 
 }
 
