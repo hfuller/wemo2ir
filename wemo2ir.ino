@@ -202,4 +202,5 @@ void parseString() {
 	Serial.println("done.");
 	EEPROM.end();
 
+	www.send(200, "text/plain", "done");
 }
