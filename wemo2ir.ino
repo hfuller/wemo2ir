@@ -72,6 +72,10 @@ void setup()
 		EEPROM.end();
 	});
 	www.on("/savegc", parseString);
+	www.on("/forgetwifi", [](){
+		WiFi.disconnect();
+		ESP.restart();
+	});
 	www.begin();
 
 	Serial.println("Startup complete");
